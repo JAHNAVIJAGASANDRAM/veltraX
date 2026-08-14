@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import pool from "./db/pool.js";
 
 const app = express();
 
@@ -19,10 +20,22 @@ app.use(
 
 app.use(express.json());
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "ok"
-  });
+app.get("/api/health", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT 1");
+
+    res.status(200).json({
+      status: "ok",
+      database: result.rowCount === 1 ? "connected" : "unknown"
+    });
+  } catch (error) {
+    console.error("Database health check failed:", error);
+
+    res.status(503).json({
+      status: "error",
+      database: "disconnected"
+    });
+  }
 });
 
 app.listen(PORT, () => {
