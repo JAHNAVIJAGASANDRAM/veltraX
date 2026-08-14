@@ -1,0 +1,11 @@
+{
+  "name": "veltrax",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic security extension for Veltra",
+  "packageManager": "pnpm@11.18.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @veltrax/api --filter @veltrax/web dev"
+  }
+}
