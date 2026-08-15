@@ -4,6 +4,7 @@ import cors from "cors";
 import pool from "./db/pool.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
+import workspaceRoutes from "./routes/workspaces.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/workspaces", workspaceRoutes);
 
 app.get("/api/health", async (req, res) => {
   try {
