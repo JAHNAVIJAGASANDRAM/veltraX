@@ -1,6 +1,7 @@
 export const PERMISSIONS = Object.freeze({
   WORKSPACE_VIEW: "workspace:view",
   WORKSPACE_UPDATE: "workspace:update",
+
   MEMBER_VIEW: "member:view",
   MEMBER_INVITE: "member:invite",
   MEMBER_REMOVE: "member:remove",
@@ -34,10 +35,52 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.WORKSPACE_VIEW
   ]
 });
+
 export const ASSIGNABLE_ROLES = Object.freeze({
-  OWNER: ["ADMIN", "MANAGER", "MEMBER", "VIEWER"],
-  ADMIN: ["ADMIN", "MANAGER", "MEMBER", "VIEWER"],
-  MANAGER: ["MEMBER", "VIEWER"],
+  OWNER: [
+    "ADMIN",
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  ADMIN: [
+    "ADMIN",
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  MANAGER: [
+    "MEMBER",
+    "VIEWER"
+  ],
+
   MEMBER: [],
+
+  VIEWER: []
+});
+
+export const ROLE_CHANGE_RULES = Object.freeze({
+  OWNER: [
+    "ADMIN",
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  ADMIN: [
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  MANAGER: [
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  MEMBER: [],
+
   VIEWER: []
 });

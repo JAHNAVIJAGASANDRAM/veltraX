@@ -5,7 +5,12 @@ import {
   requirePermission
 } from "../authorization/middleware.js";
 
-import { PERMISSIONS , ASSIGNABLE_ROLES} from "../authorization/permissions.js";
+import {
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  ASSIGNABLE_ROLES,
+  ROLE_CHANGE_RULES
+} from "../authorization/permissions.js";
 import pool from "../db/pool.js";
 
 const router = express.Router();
@@ -155,5 +160,86 @@ router.post(
     }
   }
 );
+router.patch(
+  "/:workspaceId/members/:userId/role",
+  requireAuth,
+  requireWorkspaceMember,
+  requirePermission(PERMISSIONS.MEMBER_ROLE_UPDATE),
+  async (req, res, next) => {
+    const { userId } = req.params;
+    const { role } = req.body;
 
+    if (typeof role !== "string") {
+      return res.status(400).json({
+        error: "role is required"
+      });
+    }
+
+    const normalizedRole = role.trim().toUpperCase();
+
+    try {
+      if (!ROLE_PERMISSIONS[normalizedRole]) {
+        return res.status(400).json({
+          error: "Invalid workspace role"
+        });
+      }
+
+      if (userId === req.user.id) {
+        return res.status(400).json({
+          error: "You cannot change your own workspace role"
+        });
+      }
+
+      const allowedRoles =
+        ROLE_CHANGE_RULES[req.workspace.role] || [];
+
+      if (!allowedRoles.includes(normalizedRole)) {
+        return res.status(403).json({
+          error: "You cannot assign this role"
+        });
+      }
+
+      const targetResult = await pool.query(
+        `
+          SELECT user_id, role
+          FROM workspace_members
+          WHERE workspace_id = $1
+            AND user_id = $2
+        `,
+        [req.workspace.id, userId]
+      );
+
+      if (targetResult.rowCount === 0) {
+        return res.status(404).json({
+          error: "Workspace member not found"
+        });
+      }
+
+      const target = targetResult.rows[0];
+
+      if (target.role === "OWNER") {
+        return res.status(403).json({
+          error: "The workspace owner cannot be modified"
+        });
+      }
+
+      const result = await pool.query(
+        `
+          UPDATE workspace_members
+          SET role = $1
+          WHERE workspace_id = $2
+            AND user_id = $3
+          RETURNING workspace_id, user_id, role, created_at
+        `,
+        [normalizedRole, req.workspace.id, userId]
+      );
+
+      return res.status(200).json({
+        member: result.rows[0]
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 export default router;
