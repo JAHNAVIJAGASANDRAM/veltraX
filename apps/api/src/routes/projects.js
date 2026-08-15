@@ -6,6 +6,7 @@ import {
 } from "../authorization/middleware.js";
 import { PERMISSIONS } from "../authorization/permissions.js";
 import pool from "../db/pool.js";
+import { logActivity } from "../activity/service.js";
 
 const router = express.Router();
 
@@ -75,6 +76,16 @@ router.post(
           description ?? null
         ]
       );
+      await logActivity({
+  workspaceId: req.workspace.id,
+  userId: req.user.id,
+  action: "PROJECT_CREATED",
+  resourceType: "PROJECT",
+  resourceId: result.rows[0].id,
+  metadata: {
+    name: result.rows[0].name
+  }
+});
 
       return res.status(201).json({
         project: result.rows[0]
@@ -166,6 +177,8 @@ router.get(
           error: "Project not found"
         });
       }
+
+
 
       return res.status(200).json({
         project: result.rows[0]
@@ -268,6 +281,17 @@ router.patch(
           error: "Project not found"
         });
       }
+            await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "PROJECT_UPDATED",
+        resourceType: "PROJECT",
+        resourceId: result.rows[0].id,
+        metadata: {
+          name: result.rows[0].name
+        }
+      });
+
 
       return res.status(200).json({
         project: result.rows[0]
@@ -313,6 +337,14 @@ router.delete(
           error: "Project not found"
         });
       }
+            await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "PROJECT_DELETED",
+        resourceType: "PROJECT",
+        resourceId: result.rows[0].id
+      });
+
 
       return res.status(204).send();
     } catch (error) {

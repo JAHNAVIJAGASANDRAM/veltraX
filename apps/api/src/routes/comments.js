@@ -6,6 +6,7 @@ import {
 } from "../authorization/middleware.js";
 import { PERMISSIONS } from "../authorization/permissions.js";
 import pool from "../db/pool.js";
+import { logActivity } from "../activity/service.js";
 
 const router = express.Router();
 
@@ -85,6 +86,16 @@ router.post(
           normalizedBody
         ]
       );
+       await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "COMMENT_CREATED",
+        resourceType: "COMMENT",
+        resourceId: result.rows[0].id,
+        metadata: {
+          task_id: result.rows[0].task_id
+        }
+      });
 
       return res.status(201).json({
         comment: result.rows[0]
@@ -233,6 +244,16 @@ router.patch(
           error: "Comment not found"
         });
       }
+      await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "COMMENT_UPDATED",
+        resourceType: "COMMENT",
+        resourceId: result.rows[0].id,
+        metadata: {
+          task_id: result.rows[0].task_id
+        }
+      });
 
       return res.status(200).json({
         comment: result.rows[0]
@@ -288,6 +309,14 @@ router.delete(
           error: "Comment not found"
         });
       }
+      await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "COMMENT_DELETED",
+        resourceType: "COMMENT",
+        resourceId: result.rows[0].id
+      });
+
 
       return res.status(204).send();
     } catch (error) {

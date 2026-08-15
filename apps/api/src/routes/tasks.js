@@ -6,6 +6,8 @@ import {
 } from "../authorization/middleware.js";
 import { PERMISSIONS } from "../authorization/permissions.js";
 import pool from "../db/pool.js";
+import { logActivity } from "../activity/service.js";
+
 
 const router = express.Router();
 
@@ -145,6 +147,19 @@ router.post(
           assigned_to ?? null
         ]
       );
+
+           await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "TASK_CREATED",
+        resourceType: "TASK",
+        resourceId: result.rows[0].id,
+        metadata: {
+          title: result.rows[0].title,
+          project_id: result.rows[0].project_id,
+          assigned_to: result.rows[0].assigned_to
+        }
+      });
 
       return res.status(201).json({
         task: result.rows[0]
@@ -462,6 +477,32 @@ router.patch(
           error: "Task not found"
         });
       }
+       await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "TASK_UPDATED",
+        resourceType: "TASK",
+        resourceId: result.rows[0].id,
+        metadata: {
+          title: result.rows[0].title,
+          status: result.rows[0].status,
+          assigned_to: result.rows[0].assigned_to
+        }
+      });
+
+      if (assigned_to !== undefined) {
+        await logActivity({
+          workspaceId: req.workspace.id,
+          userId: req.user.id,
+          action: "TASK_ASSIGNED",
+          resourceType: "TASK",
+          resourceId: result.rows[0].id,
+          metadata: {
+            assigned_to: result.rows[0].assigned_to
+          }
+        });
+      }
+
 
       return res.status(200).json({
         task: result.rows[0]
@@ -511,6 +552,13 @@ router.delete(
           error: "Task not found"
         });
       }
+      await logActivity({
+        workspaceId: req.workspace.id,
+        userId: req.user.id,
+        action: "TASK_DELETED",
+        resourceType: "TASK",
+        resourceId: result.rows[0].id
+      });
 
       return res.status(204).send();
     } catch (error) {
