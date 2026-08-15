@@ -6,6 +6,7 @@ import {
 } from "../authorization/middleware.js";
 
 import { PERMISSIONS } from "../authorization/permissions.js";
+import pool from "../db/pool.js";
 
 const router = express.Router();
 
@@ -31,6 +32,37 @@ router.post(
       status: "authorized",
       role: req.workspace.role
     });
+  }
+);
+router.get(
+  "/:workspaceId/members",
+  requireAuth,
+  requireWorkspaceMember,
+  requirePermission(PERMISSIONS.MEMBER_VIEW),
+  async (req, res, next) => {
+    try {
+      const result = await pool.query(
+        `
+          SELECT
+            u.id,
+            u.email,
+            wm.role,
+            wm.created_at
+          FROM workspace_members wm
+          INNER JOIN users u
+            ON u.id = wm.user_id
+          WHERE wm.workspace_id = $1
+          ORDER BY wm.created_at ASC
+        `,
+        [req.workspace.id]
+      );
+
+      return res.status(200).json({
+        members: result.rows
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 );
 
