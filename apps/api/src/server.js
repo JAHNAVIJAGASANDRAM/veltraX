@@ -5,6 +5,7 @@ import pool from "./db/pool.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspaces.js";
+import projectsRouter from "./routes/projects.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/workspaces", projectsRouter);
 
 app.get("/api/health", async (req, res) => {
   try {
