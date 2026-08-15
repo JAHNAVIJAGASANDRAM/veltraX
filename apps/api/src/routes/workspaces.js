@@ -9,7 +9,8 @@ import {
   PERMISSIONS,
   ROLE_PERMISSIONS,
   ASSIGNABLE_ROLES,
-  ROLE_CHANGE_RULES
+  ROLE_CHANGE_RULES,
+  ROLE_REMOVAL_RULES
 } from "../authorization/permissions.js";
 import pool from "../db/pool.js";
 
@@ -237,6 +238,69 @@ router.patch(
       return res.status(200).json({
         member: result.rows[0]
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+router.delete(
+  "/:workspaceId/members/:userId",
+  requireAuth,
+  requireWorkspaceMember,
+  requirePermission(PERMISSIONS.MEMBER_REMOVE),
+  async (req, res, next) => {
+    const { userId } = req.params;
+
+    try {
+      if (userId === req.user.id) {
+        return res.status(400).json({
+          error: "You cannot remove yourself from the workspace"
+        });
+      }
+
+      const targetResult = await pool.query(
+        `
+          SELECT user_id, role
+          FROM workspace_members
+          WHERE workspace_id = $1
+            AND user_id = $2
+        `,
+        [req.workspace.id, userId]
+      );
+
+      if (targetResult.rowCount === 0) {
+        return res.status(404).json({
+          error: "Workspace member not found"
+        });
+      }
+
+      const target = targetResult.rows[0];
+
+      if (target.role === "OWNER") {
+        return res.status(403).json({
+          error: "The workspace owner cannot be removed"
+        });
+      }
+
+      const removableRoles =
+        ROLE_REMOVAL_RULES[req.workspace.role] || [];
+
+      if (!removableRoles.includes(target.role)) {
+        return res.status(403).json({
+          error: "You cannot remove this member"
+        });
+      }
+
+      await pool.query(
+        `
+          DELETE FROM workspace_members
+          WHERE workspace_id = $1
+            AND user_id = $2
+        `,
+        [req.workspace.id, userId]
+      );
+
+      return res.status(204).send();
     } catch (error) {
       next(error);
     }

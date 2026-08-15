@@ -84,3 +84,21 @@ export const ROLE_CHANGE_RULES = Object.freeze({
 
   VIEWER: []
 });
+export const ROLE_REMOVAL_RULES = Object.freeze({
+  OWNER: [
+    "ADMIN",
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  ADMIN: [
+    "MANAGER",
+    "MEMBER",
+    "VIEWER"
+  ],
+
+  MANAGER: [],
+  MEMBER: [],
+  VIEWER: []
+});
