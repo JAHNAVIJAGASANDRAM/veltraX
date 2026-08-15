@@ -45,3 +45,21 @@ export async function requireWorkspaceMember(req, res, next) {
     next(error);
   }
 }
+
+export function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.workspace) {
+      return res.status(500).json({
+        error: "Workspace authorization context is missing"
+      });
+    }
+
+    if (!allowedRoles.includes(req.workspace.role)) {
+      return res.status(403).json({
+        error: "Insufficient workspace permissions"
+      });
+    }
+
+    next();
+  };
+}
