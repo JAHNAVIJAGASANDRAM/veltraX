@@ -2,8 +2,10 @@ import express from "express";
 import { requireAuth } from "../auth/middleware.js";
 import {
   requireWorkspaceMember,
-  requireRole
+  requirePermission
 } from "../authorization/middleware.js";
+
+import { PERMISSIONS } from "../authorization/permissions.js";
 
 const router = express.Router();
 
@@ -23,7 +25,7 @@ router.post(
   "/:workspaceId/admin-test",
   requireAuth,
   requireWorkspaceMember,
-  requireRole("OWNER", "ADMIN"),
+ requirePermission(PERMISSIONS.WORKSPACE_UPDATE),
   async (req, res) => {
     res.status(200).json({
       status: "authorized",

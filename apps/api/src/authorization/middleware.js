@@ -1,4 +1,5 @@
 import pool from "../db/pool.js";
+import { ROLE_PERMISSIONS } from "./permissions.js";
 
 export async function requireWorkspaceMember(req, res, next) {
   try {
@@ -46,7 +47,8 @@ export async function requireWorkspaceMember(req, res, next) {
   }
 }
 
-export function requireRole(...allowedRoles) {
+
+export function requirePermission(permission) {
   return (req, res, next) => {
     if (!req.workspace) {
       return res.status(500).json({
@@ -54,7 +56,10 @@ export function requireRole(...allowedRoles) {
       });
     }
 
-    if (!allowedRoles.includes(req.workspace.role)) {
+    const permissions =
+      ROLE_PERMISSIONS[req.workspace.role] || [];
+
+    if (!permissions.includes(permission)) {
       return res.status(403).json({
         error: "Insufficient workspace permissions"
       });
