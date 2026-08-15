@@ -1,6 +1,6 @@
 import express from "express";
-import { hashPassword } from "../auth/password.js";
-import { createSession } from "../auth/session.js";
+import { hashPassword, verifyPassword } from "../auth/password.js";
+import { createSession , deleteSession} from "../auth/session.js";
 import pool from "../db/pool.js";
 import { requireAuth } from "../auth/middleware.js";
 
@@ -127,6 +127,98 @@ router.post("/register", async (req, res, next) => {
     client.release();
   }
 });
+
+router.post("/login", async (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (
+    typeof email !== "string" ||
+    typeof password !== "string"
+  ) {
+    return res.status(400).json({
+      error: "email and password are required"
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedEmail || !password) {
+    return res.status(400).json({
+      error: "email and password are required"
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        SELECT id, email, password_hash
+        FROM users
+        WHERE email = $1
+      `,
+      [normalizedEmail]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({
+        error: "Invalid email or password"
+      });
+    }
+
+    const user = result.rows[0];
+
+    const validPassword = await verifyPassword(
+      user.password_hash,
+      password
+    );
+
+    if (!validPassword) {
+      return res.status(401).json({
+        error: "Invalid email or password"
+      });
+    }
+
+    const session = await createSession(user.id);
+
+    res.cookie(COOKIE_NAME, session.token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_TTL_MS,
+      path: "/"
+    });
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/logout", async (req, res, next) => {
+  try {
+    const token = req.cookies?.[COOKIE_NAME];
+
+    if (token) {
+      await deleteSession(token);
+    }
+
+    res.clearCookie(COOKIE_NAME, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/"
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/me", requireAuth, async (req, res) => {
   res.status(200).json({
     user: req.user
