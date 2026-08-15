@@ -34,3 +34,10 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.WORKSPACE_VIEW
   ]
 });
+export const ASSIGNABLE_ROLES = Object.freeze({
+  OWNER: ["ADMIN", "MANAGER", "MEMBER", "VIEWER"],
+  ADMIN: ["ADMIN", "MANAGER", "MEMBER", "VIEWER"],
+  MANAGER: ["MEMBER", "VIEWER"],
+  MEMBER: [],
+  VIEWER: []
+});
