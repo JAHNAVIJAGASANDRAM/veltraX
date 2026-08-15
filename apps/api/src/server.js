@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import pool from "./db/pool.js";
+import cookieParser from "cookie-parser";
+import authRoutes from "./routes/auth.js";
 
 const app = express();
 
@@ -14,11 +16,14 @@ if (!FRONTEND_ORIGIN) {
 
 app.use(
   cors({
-    origin: FRONTEND_ORIGIN
+    origin: FRONTEND_ORIGIN,
+    credentials: true
   })
 );
 
 app.use(express.json());
+app.use(cookieParser());
+app.use("/api/auth", authRoutes);
 
 app.get("/api/health", async (req, res) => {
   try {
