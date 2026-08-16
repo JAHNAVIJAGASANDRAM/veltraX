@@ -1,14 +1,57 @@
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
+html {
+  min-width: 320px;
   min-height: 100%;
+  background: #f5fffc;
 }
 
 body {
-  font-family: Arial, sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(
+      900px 600px at 5% 5%,
+      rgba(119, 255, 223, 0.24),
+      transparent 65%
+    ),
+    radial-gradient(
+      800px 600px at 95% 85%,
+      rgba(89, 246, 214, 0.17),
+      transparent 65%
+    ),
+    linear-gradient(
+      135deg,
+      #f9fffd 0%,
+      #eefbf8 48%,
+      #f8fffd 100%
+    );
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.25;
+  background:
+    radial-gradient(
+      circle at 20% 30%,
+      rgba(255, 255, 255, 0.8),
+      transparent 28%
+    );
+}
+
+#root {
+  min-height: 100vh;
 }
