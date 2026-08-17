@@ -1,4 +1,5 @@
 import pool from "../../db/pool.js";
+import { requireProjectInWorkspace } from "../resources/projects.js";
 
 export async function listProjects({ workspaceId }) {
   const result = await pool.query(
@@ -67,12 +68,18 @@ export async function createProject({
     project: result.rows[0]
   };
 }
+
 export async function updateProject({
   workspaceId,
   projectId,
   name,
   description = null
 }) {
+  await requireProjectInWorkspace({
+    workspaceId,
+    projectId
+  });
+
   const result = await pool.query(
     `
       UPDATE projects
