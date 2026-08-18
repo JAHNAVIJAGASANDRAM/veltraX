@@ -509,6 +509,89 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       }
     };
   }
+  if (toolName === "delete_task") {
+    const allowedKeys = ["task_id"];
+    const unknownKeys = unknownArguments(toolArguments, allowedKeys);
+
+    if (unknownKeys.length > 0) {
+      return {
+        valid: false,
+        error: `Unknown arguments: ${unknownKeys.join(", ")}`
+      };
+    }
+
+    if (typeof toolArguments.task_id !== "string") {
+      return {
+        valid: false,
+        error: "task_id must be a string"
+      };
+    }
+
+    const taskId = toolArguments.task_id.trim();
+
+    if (!taskId) {
+      return {
+        valid: false,
+        error: "task_id is required"
+      };
+    }
+
+    if (!isValidUuid(taskId)) {
+      return {
+        valid: false,
+        error: "task_id must be a valid UUID"
+      };
+    }
+
+    return {
+      valid: true,
+      arguments: {
+        taskId
+      }
+    };
+  }
+  if (toolName === "delete_project") {
+    const allowedKeys = ["project_id"];
+    const unknownKeys = unknownArguments(toolArguments, allowedKeys);
+
+    if (unknownKeys.length > 0) {
+      return {
+        valid: false,
+        error: `Unknown arguments: ${unknownKeys.join(", ")}`
+      };
+    }
+
+    if (typeof toolArguments.project_id !== "string") {
+      return {
+        valid: false,
+        error: "project_id must be a string"
+      };
+    }
+
+    const projectId = toolArguments.project_id.trim();
+
+    if (!projectId) {
+      return {
+        valid: false,
+        error: "project_id is required"
+      };
+    }
+
+    if (!isValidUuid(projectId)) {
+      return {
+        valid: false,
+        error: "project_id must be a valid UUID"
+      };
+    }
+
+    return {
+      valid: true,
+      arguments: {
+        projectId
+      }
+    };
+  }
+
   return {
     valid: false,
     error: "No argument validator registered for this tool"

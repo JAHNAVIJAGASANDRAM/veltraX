@@ -9,6 +9,8 @@ import {
   createTask,
   updateTask
 } from "./tools/tasks.js";
+import { deleteTask } from "./tools/delete-task.js";
+import { deleteProject } from "./tools/delete-project.js";
 
 export const AGENT_TOOLS = Object.freeze({
   list_projects: {
@@ -38,6 +40,15 @@ export const AGENT_TOOLS = Object.freeze({
     execute: updateProject
   },
 
+  delete_project: {
+    name: "delete_project",
+    description: "Delete a project within the authenticated workspace.",
+    permission: PERMISSIONS.PROJECT_DELETE,
+    action: "PROJECT_DELETE",
+    resourceType: "PROJECT",
+    execute: deleteProject
+  },
+
   list_tasks: {
     name: "list_tasks",
     description: "List tasks belonging to a project in the authenticated workspace.",
@@ -63,6 +74,15 @@ export const AGENT_TOOLS = Object.freeze({
     action: "TASK_UPDATE",
     resourceType: "TASK",
     execute: updateTask
+  },
+
+  delete_task: {
+    name: "delete_task",
+    description: "Delete a task within the authenticated workspace.",
+    permission: PERMISSIONS.TASK_DELETE,
+    action: "TASK_DELETE",
+    resourceType: "TASK",
+    execute: deleteTask
   }
 });
 
