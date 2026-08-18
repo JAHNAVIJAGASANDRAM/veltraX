@@ -1,12 +1,7 @@
 import pool from "../db/pool.js";
-import { ROLE_PERMISSIONS } from "../authorization/permissions.js";
+import { evaluateToolPolicy } from "./policy.js";
 import { getAgentTool } from "./registry.js";
 import { validateToolArguments } from "./validation.js";
-
-function hasPermission(role, permission) {
-  const permissions = ROLE_PERMISSIONS[role] || [];
-  return permissions.includes(permission);
-}
 
 async function recordToolCall({
   workspaceId,
@@ -63,9 +58,12 @@ export async function executeAgentTool({
     };
   }
 
-  const authorized = hasPermission(role, tool.permission);
+  const policyDecision = evaluateToolPolicy({
+    role,
+    tool
+  });
 
-  if (!authorized) {
+  if (!policyDecision.allowed) {
     await recordToolCall({
       workspaceId,
       userId,
@@ -73,7 +71,8 @@ export async function executeAgentTool({
       authorizationResult: "DENIED",
       status: "DENIED",
       metadata: {
-        role
+        role,
+        reason: policyDecision.reason
       }
     });
 
@@ -83,72 +82,78 @@ export async function executeAgentTool({
       error: "Agent tool permission denied"
     };
   }
+
   const validation = validateToolArguments(
-  toolName,
-  toolArguments
-);
+    toolName,
+    toolArguments
+  );
 
-if (!validation.valid) {
-  await recordToolCall({
-    workspaceId,
-    userId,
-    tool,
-    authorizationResult: "ALLOWED",
-    status: "INVALID_ARGUMENTS",
-    metadata: {
-      role,
+  if (!validation.valid) {
+    await recordToolCall({
+      workspaceId,
+      userId,
+      tool,
+      authorizationResult: "ALLOWED",
+      status: "INVALID_ARGUMENTS",
+      metadata: {
+        role,
+        error: validation.error
+      }
+    });
+
+    return {
+      ok: false,
+      statusCode: 400,
       error: validation.error
-    }
-  });
-
-  return {
-    ok: false,
-    statusCode: 400,
-    error: validation.error
-  };
-}
+    };
+  }
 
   try {
-   const result = await tool.execute({
-  workspaceId,
-  userId,
-  ...validation.arguments
-});
+    const result = await tool.execute({
+      workspaceId,
+      userId,
+      ...validation.arguments
+    });
 
     await recordToolCall({
-  workspaceId,
-  userId,
-  tool,
-  authorizationResult: "ALLOWED",
-  status: "SUCCESS",
-  resourceId:
-    validation.arguments?.projectId ||
-    result?.project?.id ||
-    null,
-  metadata: {
-    role
-  }
-});
+      workspaceId,
+      userId,
+      tool,
+      authorizationResult: "ALLOWED",
+      status: "SUCCESS",
+      resourceId:
+        result?.task?.id ||
+        result?.project?.id ||
+        validation.arguments?.taskId ||
+        validation.arguments?.projectId ||
+        null,
+      metadata: {
+        role
+      }
+    });
 
     return {
       ok: true,
       result
     };
-    } catch (error) {
+  } catch (error) {
     if (error.code === "RESOURCE_NOT_FOUND") {
-     await recordToolCall({
-  workspaceId,
-  userId,
-  tool,
-  authorizationResult: "ALLOWED",
-  status: "DENIED",
-  resourceId: validation.arguments?.projectId || null,
-  metadata: {
-    role,
-    error: error.message,
-    reason: "RESOURCE_OUTSIDE_WORKSPACE_OR_NOT_FOUND"
-  }
-});
+      await recordToolCall({
+        workspaceId,
+        userId,
+        tool,
+        authorizationResult: "ALLOWED",
+        status: "DENIED",
+        resourceId:
+          validation.arguments?.taskId ||
+          validation.arguments?.projectId ||
+          null,
+        metadata: {
+          role,
+          error: error.message,
+          reason: "RESOURCE_OUTSIDE_WORKSPACE_OR_NOT_FOUND"
+        }
+      });
 
       return {
         ok: false,
@@ -158,17 +163,21 @@ if (!validation.valid) {
     }
 
     await recordToolCall({
-  workspaceId,
-  userId,
-  tool,
-  authorizationResult: "ALLOWED",
-  status: "ERROR",
-  resourceId: validation.arguments?.projectId || null,
-  metadata: {
-    role,
-    error: error.message
-  }
-});
+      workspaceId,
+      userId,
+      tool,
+      authorizationResult: "ALLOWED",
+      status: "ERROR",
+      resourceId:
+        validation.arguments?.taskId ||
+        validation.arguments?.projectId ||
+        null,
+      metadata: {
+        role,
+        error: error.message
+      }
+    });
+
     throw error;
   }
 }
