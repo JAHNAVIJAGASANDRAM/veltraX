@@ -9,6 +9,14 @@ const VALID_TASK_STATUSES = [
   "DONE"
 ];
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value) {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
+
+
 function validateObject(toolArguments) {
   return (
     toolArguments !== null &&
@@ -146,6 +154,13 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       };
     }
 
+    if (!isValidUuid(projectId)) {
+      return {
+        valid: false,
+        error: "project_id must be a valid UUID"
+      };
+    }
+
     if (typeof toolArguments.name !== "string") {
       return {
         valid: false,
@@ -230,6 +245,13 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       };
     }
 
+    if (!isValidUuid(projectId)) {
+      return {
+        valid: false,
+        error: "project_id must be a valid UUID"
+      };
+    }
+
     return {
       valid: true,
       arguments: {
@@ -269,6 +291,13 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       return {
         valid: false,
         error: "project_id is required"
+      };
+    }
+
+    if (!isValidUuid(projectId)) {
+      return {
+        valid: false,
+        error: "project_id must be a valid UUID"
       };
     }
 
@@ -382,10 +411,19 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       };
     }
 
-    if (!toolArguments.task_id.trim()) {
+    const taskId = toolArguments.task_id.trim();
+
+    if (!taskId) {
       return {
         valid: false,
         error: "task_id is required"
+      };
+    }
+
+    if (!isValidUuid(taskId)) {
+      return {
+        valid: false,
+        error: "task_id must be a valid UUID"
       };
     }
 
@@ -405,10 +443,10 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       };
     }
 
-    if (title.length > MAX_PROJECT_NAME_LENGTH) {
+    if (title.length > MAX_TASK_TITLE_LENGTH) {
       return {
         valid: false,
-        error: `title must be ${MAX_PROJECT_NAME_LENGTH} characters or fewer`
+        error: `title must be ${MAX_TASK_TITLE_LENGTH} characters or fewer`
       };
     }
 
@@ -425,23 +463,17 @@ export function validateToolArguments(toolName, toolArguments = {}) {
 
     if (
       typeof toolArguments.description === "string" &&
-      toolArguments.description.length > MAX_PROJECT_DESCRIPTION_LENGTH
+      toolArguments.description.length > MAX_TASK_DESCRIPTION_LENGTH
     ) {
       return {
         valid: false,
-        error: `description must be ${MAX_PROJECT_DESCRIPTION_LENGTH} characters or fewer`
+        error: `description must be ${MAX_TASK_DESCRIPTION_LENGTH} characters or fewer`
       };
     }
 
-    const validStatuses = [
-      "TODO",
-      "IN_PROGRESS",
-      "DONE"
-    ];
-
     if (
       typeof toolArguments.status !== "string" ||
-      !validStatuses.includes(toolArguments.status)
+      !VALID_TASK_STATUSES.includes(toolArguments.status)
     ) {
       return {
         valid: false,
@@ -463,7 +495,7 @@ export function validateToolArguments(toolName, toolArguments = {}) {
     return {
       valid: true,
       arguments: {
-        taskId: toolArguments.task_id.trim(),
+        taskId,
         title,
         description:
           typeof toolArguments.description === "string"

@@ -137,7 +137,8 @@ export async function executeAgentTool({
       result
     };
   } catch (error) {
-    if (error.code === "RESOURCE_NOT_FOUND") {
+    if (error.code === "RESOURCE_NOT_FOUND"  ||
+  error.code === "ASSIGNEE_OUTSIDE_WORKSPACE") {
       await recordToolCall({
         workspaceId,
         userId,
@@ -151,15 +152,23 @@ export async function executeAgentTool({
         metadata: {
           role,
           error: error.message,
-          reason: "RESOURCE_OUTSIDE_WORKSPACE_OR_NOT_FOUND"
+          reason:
+          error.code === "ASSIGNEE_OUTSIDE_WORKSPACE"
+              ? "ASSIGNEE_OUTSIDE_WORKSPACE"
+              : "RESOURCE_OUTSIDE_WORKSPACE_OR_NOT_FOUND"
         }
       });
 
       return {
-        ok: false,
-        statusCode: 404,
-        error: "Resource not found"
-      };
+  ok: false,
+  statusCode: error.code === "ASSIGNEE_OUTSIDE_WORKSPACE"
+    ? 403
+    : 404,
+  error:
+    error.code === "ASSIGNEE_OUTSIDE_WORKSPACE"
+      ? "Assigned user is not a member of this workspace"
+      : "Resource not found"
+};
     }
 
     await recordToolCall({
