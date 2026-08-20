@@ -65,9 +65,4 @@ VeltraX addresses these risks by enforcing identity, workspace boundaries, permi
                  |           |
                  v           v
                Stop     Execute Action
-                             |
-                    +--------+--------+
-                    |                 |
-                    v                 v
-               Veltra Data       External APIs
-                                  GitHub / etc.
+
