@@ -1,8 +1,8 @@
-# veltraX
-A multi-user workspace where AI agents inherit the authenticated user's authorization context, including permissions and optionally delegated OAuth access to external services.
+# VeltraX
 
+> A multi-user workspace where AI agents act within the authenticated user's authorization context, including permissions and optionally delegated OAuth access to external services.
 
-### Agentic Security Extension for Veltra
+## Agentic Security Extension for Veltra
 
 VeltraX is an agentic-security extension of **Veltra**, a multi-user virtual workspace that enables AI agents to perform workspace and external-service actions on behalf of authenticated users.
 
@@ -25,7 +25,7 @@ AI agents can interact with applications through tools and APIs, but giving an a
 - OAuth credential misuse
 - Loss of action attribution
 
-VeltraX addresses these problems by enforcing identity, workspace boundaries, permissions, and delegated access **outside the AI model**.
+VeltraX addresses these risks by enforcing identity, workspace boundaries, permissions, and delegated access **outside the AI model**.
 
 ---
 
@@ -65,9 +65,4 @@ VeltraX addresses these problems by enforcing identity, workspace boundaries, pe
                  |           |
                  v           v
                Stop     Execute Action
-                             |
-                    +--------+--------+
-                    |                 |
-                    v                 v
-               Veltra Data       External APIs
-                                  GitHub / etc.
+
