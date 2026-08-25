@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth } from "../auth/middleware.js";
 import { requireWorkspaceMember } from "../authorization/middleware.js";
+import { getAgentCapabilities } from "../agent/capabilities.js";
 import { executeAgentTool } from "../agent/service.js";
 
 const router = express.Router();
@@ -10,12 +11,13 @@ const router = express.Router();
  *
  * Execute one authorized agent tool.
  *
- * The authenticated session determines:
- * - user identity
- * - workspace
- * - workspace role
+ * Authorization flow:
+ * - authenticated session determines user identity
+ * - workspace membership determines workspace role
+ * - server derives agent capabilities from that role
+ * - capability policy authorizes the requested tool
  *
- * The client/agent only supplies the tool name.
+ * The client/agent never supplies capabilities or role.
  */
 router.post(
   "/:workspaceId/agent/tool",
@@ -31,10 +33,13 @@ router.post(
     }
 
     try {
+      const capabilities = getAgentCapabilities(req.workspace.role);
+
       const result = await executeAgentTool({
         workspaceId: req.workspace.id,
         userId: req.user.id,
         role: req.workspace.role,
+        capabilities,
         toolName: tool.trim(),
         arguments: toolArguments
       });

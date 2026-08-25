@@ -1,13 +1,13 @@
-import { ROLE_PERMISSIONS } from "../authorization/permissions.js";
+import { hasAgentCapability } from "./capabilities.js";
 
 export function evaluateToolPolicy({
-  role,
+  capabilities,
   tool
 }) {
-  if (!role) {
+  if (!Array.isArray(capabilities)) {
     return {
       allowed: false,
-      reason: "ROLE_MISSING"
+      reason: "CAPABILITIES_MISSING"
     };
   }
 
@@ -18,17 +18,25 @@ export function evaluateToolPolicy({
     };
   }
 
-  const permissions = ROLE_PERMISSIONS[role] || [];
-
-  if (!permissions.includes(tool.permission)) {
+  if (!tool.capability) {
     return {
       allowed: false,
-      reason: "PERMISSION_DENIED"
+      reason: "TOOL_CAPABILITY_MISSING"
+    };
+  }
+
+  if (!hasAgentCapability(
+    capabilities,
+    tool.capability
+  )) {
+    return {
+      allowed: false,
+      reason: "CAPABILITY_DENIED"
     };
   }
 
   return {
     allowed: true,
-    reason: "PERMISSION_GRANTED"
+    reason: "CAPABILITY_GRANTED"
   };
 }

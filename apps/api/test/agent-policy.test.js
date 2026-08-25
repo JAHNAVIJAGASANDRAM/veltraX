@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 
 import { evaluateToolPolicy } from "../src/agent/policy.js";
 import { getAgentTool } from "../src/agent/registry.js";
+import { getAgentCapabilities } from "../src/agent/capabilities.js";
 
-test("delete_task permission matrix", () => {
+test("delete_task capability matrix", () => {
   const tool = getAgentTool("delete_task");
 
   assert.ok(tool);
@@ -18,24 +19,29 @@ test("delete_task permission matrix", () => {
   };
 
   for (const [role, allowed] of Object.entries(expected)) {
-    const decision = evaluateToolPolicy({ role, tool });
+    const capabilities = getAgentCapabilities(role);
+
+    const decision = evaluateToolPolicy({
+      capabilities,
+      tool
+    });
 
     assert.equal(
       decision.allowed,
       allowed,
-      `${role} delete_task permission mismatch`
+      `${role} delete_task capability mismatch`
     );
 
     assert.equal(
       decision.reason,
       allowed
-        ? "PERMISSION_GRANTED"
-        : "PERMISSION_DENIED"
+        ? "CAPABILITY_GRANTED"
+        : "CAPABILITY_DENIED"
     );
   }
 });
 
-test("delete_project permission matrix", () => {
+test("delete_project capability matrix", () => {
   const tool = getAgentTool("delete_project");
 
   assert.ok(tool);
@@ -49,33 +55,68 @@ test("delete_project permission matrix", () => {
   };
 
   for (const [role, allowed] of Object.entries(expected)) {
-    const decision = evaluateToolPolicy({ role, tool });
+    const capabilities = getAgentCapabilities(role);
+
+    const decision = evaluateToolPolicy({
+      capabilities,
+      tool
+    });
 
     assert.equal(
       decision.allowed,
       allowed,
-      `${role} delete_project permission mismatch`
+      `${role} delete_project capability mismatch`
     );
 
     assert.equal(
       decision.reason,
       allowed
-        ? "PERMISSION_GRANTED"
-        : "PERMISSION_DENIED"
+        ? "CAPABILITY_GRANTED"
+        : "CAPABILITY_DENIED"
     );
   }
 });
 
-test("missing role is denied", () => {
+test("missing capabilities are denied", () => {
   const tool = getAgentTool("delete_task");
 
   const decision = evaluateToolPolicy({
-    role: null,
+    capabilities: undefined,
     tool
   });
 
   assert.deepEqual(decision, {
     allowed: false,
-    reason: "ROLE_MISSING"
+    reason: "CAPABILITIES_MISSING"
+  });
+});
+
+test("empty capabilities are denied", () => {
+  const tool = getAgentTool("delete_task");
+
+  const decision = evaluateToolPolicy({
+    capabilities: [],
+    tool
+  });
+
+  assert.deepEqual(decision, {
+    allowed: false,
+    reason: "CAPABILITY_DENIED"
+  });
+});
+
+test("tool without a capability requirement is denied", () => {
+  const capabilities = getAgentCapabilities("OWNER");
+
+  const decision = evaluateToolPolicy({
+    capabilities,
+    tool: {
+      name: "test_tool"
+    }
+  });
+
+  assert.deepEqual(decision, {
+    allowed: false,
+    reason: "TOOL_CAPABILITY_MISSING"
   });
 });
