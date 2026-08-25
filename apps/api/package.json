@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --env-file=../../.env.test --test test/*.test.js"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "argon2": "^0.45.1",
