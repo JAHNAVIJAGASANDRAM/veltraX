@@ -1,0 +1,57 @@
+name: VeltraX CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  api-security-tests:
+    name: API Security Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: veltrax_app
+          POSTGRES_PASSWORD: veltrax_ci_password
+          POSTGRES_DB: veltrax_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U veltrax_app -d veltrax_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
+        run: pnpm db:migrate
+
+      - name: Run API security tests
+        env:
+          DATABASE_URL: postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
+        run: pnpm --filter @veltrax/api test
