@@ -46,12 +46,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Create test environment
+        shell: bash
+        run: |
+          cat > .env.test <<'EOF'
+          DATABASE_URL=postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
+          EOF
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
         run: pnpm db:migrate
 
       - name: Run API security tests
-        env:
-          DATABASE_URL: postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
         run: pnpm --filter @veltrax/api test
