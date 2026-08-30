@@ -2,6 +2,7 @@ import pool from "../db/pool.js";
 import { evaluateToolPolicy } from "./policy.js";
 import { getAgentTool } from "./registry.js";
 import { validateToolArguments } from "./validation.js";
+import { getAgentCapabilities } from "./capabilities.js";
 
 async function recordToolCall({
   workspaceId,
@@ -45,7 +46,6 @@ export async function executeAgentTool({
   workspaceId,
   userId,
   role,
-  capabilities,
   toolName,
   arguments: toolArguments = {}
 }) {
@@ -58,6 +58,10 @@ export async function executeAgentTool({
       error: "Unknown agent tool"
     };
   }
+
+  // Capabilities are always derived server-side from the authenticated
+  // workspace role. They are never accepted from the caller.
+  const capabilities = getAgentCapabilities(role);
 
   const policyDecision = evaluateToolPolicy({
     capabilities,

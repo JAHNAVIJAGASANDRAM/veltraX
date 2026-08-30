@@ -1,7 +1,6 @@
 import express from "express";
 import { requireAuth } from "../auth/middleware.js";
 import { requireWorkspaceMember } from "../authorization/middleware.js";
-import { getAgentCapabilities } from "../agent/capabilities.js";
 import { executeAgentTool } from "../agent/service.js";
 
 const router = express.Router();
@@ -33,13 +32,10 @@ router.post(
     }
 
     try {
-      const capabilities = getAgentCapabilities(req.workspace.role);
-
       const result = await executeAgentTool({
         workspaceId: req.workspace.id,
         userId: req.user.id,
         role: req.workspace.role,
-        capabilities,
         toolName: tool.trim(),
         arguments: toolArguments
       });

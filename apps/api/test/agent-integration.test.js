@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import pool from "../src/db/pool.js";
 import { executeAgentTool } from "../src/agent/service.js";
-import { getAgentCapabilities } from "../src/agent/capabilities.js";
 
 let userA;
 let userB;
@@ -140,7 +139,6 @@ test("OWNER can delete a task inside their workspace", async () => {
     workspaceId: workspaceA.id,
     userId: userA.id,
     role: "OWNER",
-    capabilities: getAgentCapabilities("OWNER"),
     toolName: "delete_task",
     arguments: {
       task_id: taskA.id
@@ -167,7 +165,6 @@ test("cross-workspace task deletion is blocked", async () => {
     workspaceId: workspaceA.id,
     userId: userA.id,
     role: "OWNER",
-    capabilities: getAgentCapabilities("OWNER"),
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
@@ -195,7 +192,6 @@ test("MANAGER cannot delete a task", async () => {
     workspaceId: workspaceA.id,
     userId: userA.id,
     role: "MANAGER",
-    capabilities: getAgentCapabilities("MANAGER"),
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
@@ -223,7 +219,6 @@ test("cross-workspace project deletion is blocked", async () => {
     workspaceId: workspaceA.id,
     userId: userA.id,
     role: "OWNER",
-    capabilities: getAgentCapabilities("OWNER"),
     toolName: "delete_project",
     arguments: {
       project_id: projectB.id
@@ -251,7 +246,6 @@ test("successful task deletion is written to the audit log", async () => {
     workspaceId: workspaceB.id,
     userId: userB.id,
     role: "OWNER",
-    capabilities: getAgentCapabilities("OWNER"),
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
