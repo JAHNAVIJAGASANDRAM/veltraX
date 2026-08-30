@@ -71,7 +71,18 @@ export async function upsertOAuthGrant({
     ]
   );
 
-  return result.rows[0];
+  const grant = result.rows[0];
+
+  return {
+    id: grant.id,
+    userId: grant.user_id,
+    provider: grant.provider,
+    providerUserId: grant.provider_user_id,
+    scopes: grant.scopes,
+    createdAt: grant.created_at,
+    updatedAt: grant.updated_at,
+    revokedAt: grant.revoked_at
+  };
 }
 
 export async function getOAuthGrant({
