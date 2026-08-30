@@ -51,6 +51,7 @@ jobs:
         run: |
           cat > .env.test <<'EOF'
           DATABASE_URL=postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
+          OAUTH_ENCRYPTION_KEY=${{ secrets.OAUTH_ENCRYPTION_KEY }}
           EOF
 
       - name: Run database migrations
