@@ -9,6 +9,7 @@ import projectsRouter from "./routes/projects.js";
 import tasksRouter from "./routes/tasks.js";
 import commentsRouter from "./routes/comments.js";
 import agentRouter from "./routes/agent.js";
+import oauthRouter from "./routes/oauth.js";
 
 
 const app = express();
@@ -31,6 +32,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/oauth", oauthRouter);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", projectsRouter);
 app.use("/api/workspaces", tasksRouter);
@@ -58,3 +60,4 @@ app.get("/api/health", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`VeltraX API running on http://localhost:${PORT}`);
 });
+
