@@ -53,6 +53,9 @@ jobs:
           DATABASE_URL=postgresql://veltrax_app:veltrax_ci_password@localhost:5432/veltrax_test
           OAUTH_ENCRYPTION_KEY=${{ secrets.OAUTH_ENCRYPTION_KEY }}
           FRONTEND_ORIGIN=http://localhost:3000
+          GITHUB_CLIENT_ID=test-client-id
+          GITHUB_CLIENT_SECRET=test-client-secret
+          GITHUB_OAUTH_REDIRECT_URI=http://localhost:4000/api/oauth/github/callback
           EOF
 
       - name: Run database migrations
