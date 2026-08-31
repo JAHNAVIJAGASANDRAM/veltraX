@@ -3,6 +3,7 @@ import { evaluateToolPolicy } from "./policy.js";
 import { getAgentTool } from "./registry.js";
 import { validateToolArguments } from "./validation.js";
 import { getAgentCapabilities } from "./capabilities.js";
+import { requireOAuthGrant } from "../authorization/oauth.js";
 
 async function recordToolCall({
   workspaceId,
@@ -89,6 +90,41 @@ export async function executeAgentTool({
     };
   }
 
+  let oauthGrant = null;
+
+  if (tool.oauthProvider) {
+    try {
+      oauthGrant = await requireOAuthGrant({
+        userId,
+        provider: tool.oauthProvider
+      });
+    } catch (error) {
+      if (error.code === "OAUTH_GRANT_NOT_FOUND") {
+        await recordToolCall({
+          workspaceId,
+          userId,
+          tool,
+          authorizationResult: "DENIED",
+          status: "DENIED",
+          metadata: {
+            role,
+            capability: tool.capability,
+            oauthProvider: tool.oauthProvider,
+            reason: "OAUTH_GRANT_NOT_FOUND"
+          }
+        });
+
+        return {
+          ok: false,
+          statusCode: 403,
+          error: "Required OAuth authorization is not connected"
+        };
+      }
+
+      throw error;
+    }
+  }
+
   const validation = validateToolArguments(
     toolName,
     toolArguments
@@ -119,6 +155,7 @@ export async function executeAgentTool({
     const result = await tool.execute({
       workspaceId,
       userId,
+      oauthGrant,
       ...validation.arguments
     });
 
@@ -203,3 +240,8 @@ export async function executeAgentTool({
     throw error;
   }
 }
+
+
+
+
+

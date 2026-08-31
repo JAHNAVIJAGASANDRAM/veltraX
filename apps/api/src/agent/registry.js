@@ -11,6 +11,7 @@ import {
 } from "./tools/tasks.js";
 import { deleteTask } from "./tools/delete-task.js";
 import { deleteProject } from "./tools/delete-project.js";
+import { getGitHubUser } from "./tools/github.js";
 
 export const AGENT_TOOLS = Object.freeze({
   list_projects: {
@@ -83,6 +84,16 @@ export const AGENT_TOOLS = Object.freeze({
     action: "TASK_DELETE",
     resourceType: "TASK",
     execute: deleteTask
+  },
+
+  github_get_user: {
+    name: "github_get_user",
+    description: "Get the authenticated user's GitHub identity.",
+    capability: AGENT_CAPABILITIES.GITHUB_USER_VIEW,
+    action: "GITHUB_USER_VIEW",
+    resourceType: "GITHUB_USER",
+    oauthProvider: "github",
+    execute: getGitHubUser
   }
 });
 

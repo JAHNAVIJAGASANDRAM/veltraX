@@ -15,7 +15,8 @@ export const PERMISSIONS = Object.freeze({
   TASK_VIEW: "task:view",
   TASK_CREATE: "task:create",
   TASK_UPDATE: "task:update",
-  TASK_DELETE: "task:delete"
+  TASK_DELETE: "task:delete",
+  GITHUB_USER_VIEW: "github:user:view"
 });
 
 export const ROLE_PERMISSIONS = Object.freeze({
@@ -38,7 +39,8 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.TASK_VIEW,
     PERMISSIONS.TASK_CREATE,
     PERMISSIONS.TASK_UPDATE,
-    PERMISSIONS.TASK_DELETE
+    PERMISSIONS.TASK_DELETE,
+    PERMISSIONS.GITHUB_USER_VIEW
   ],
 
   MANAGER: [
