@@ -44,12 +44,15 @@ async function recordToolCall({
 }
 
 export async function executeAgentTool({
-  workspaceId,
-  userId,
-  role,
+  authorizationContext,
   toolName,
   arguments: toolArguments = {}
 }) {
+  const {
+    workspaceId,
+    userId,
+    role
+  } = authorizationContext;
   const tool = getAgentTool(toolName);
 
   if (!tool) {
@@ -240,8 +243,4 @@ export async function executeAgentTool({
     throw error;
   }
 }
-
-
-
-
 

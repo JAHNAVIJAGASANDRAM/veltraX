@@ -136,9 +136,11 @@ after(async () => {
 
 test("OWNER can delete a task inside their workspace", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceA.id,
-    userId: userA.id,
-    role: "OWNER",
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
     toolName: "delete_task",
     arguments: {
       task_id: taskA.id
@@ -162,9 +164,11 @@ test("OWNER can delete a task inside their workspace", async () => {
 
 test("cross-workspace task deletion is blocked", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceA.id,
-    userId: userA.id,
-    role: "OWNER",
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
@@ -189,9 +193,11 @@ test("cross-workspace task deletion is blocked", async () => {
 
 test("MANAGER cannot delete a task", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceA.id,
-    userId: userA.id,
-    role: "MANAGER",
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "MANAGER"
+    },
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
@@ -216,9 +222,11 @@ test("MANAGER cannot delete a task", async () => {
 
 test("cross-workspace project deletion is blocked", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceA.id,
-    userId: userA.id,
-    role: "OWNER",
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
     toolName: "delete_project",
     arguments: {
       project_id: projectB.id
@@ -243,9 +251,11 @@ test("cross-workspace project deletion is blocked", async () => {
 
 test("successful task deletion is written to the audit log", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceB.id,
-    userId: userB.id,
-    role: "OWNER",
+    authorizationContext: {
+      workspaceId: workspaceB.id,
+      userId: userB.id,
+      role: "OWNER"
+    },
     toolName: "delete_task",
     arguments: {
       task_id: taskB.id
@@ -292,9 +302,11 @@ test("successful task deletion is written to the audit log", async () => {
 
 test("GitHub agent tool is denied without an active OAuth grant", async () => {
   const result = await executeAgentTool({
-    workspaceId: workspaceA.id,
-    userId: userA.id,
-    role: "OWNER",
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
     toolName: "github_get_user",
     arguments: {}
   });

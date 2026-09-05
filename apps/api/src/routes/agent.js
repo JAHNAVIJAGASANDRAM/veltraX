@@ -33,9 +33,11 @@ router.post(
 
     try {
       const result = await executeAgentTool({
-        workspaceId: req.workspace.id,
-        userId: req.user.id,
-        role: req.workspace.role,
+        authorizationContext: {
+          workspaceId: req.workspace.id,
+          userId: req.user.id,
+          role: req.workspace.role
+        },
         toolName: tool.trim(),
         arguments: toolArguments
       });
