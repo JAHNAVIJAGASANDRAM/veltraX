@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import pool from "../src/db/pool.js";
 import { executeAgentTool } from "../src/agent/service.js";
+import { upsertOAuthGrant } from "../src/oauth/grants.js";
 
 let userA;
 let userB;
@@ -359,5 +360,79 @@ test("GitHub agent tool is denied without an active OAuth grant", async () => {
   assert.equal(
     audit.rows[0].metadata.reason,
     "OAUTH_GRANT_NOT_FOUND"
+  );
+});
+test("GitHub agent tool is denied when required OAuth scope is missing", async () => {
+  await upsertOAuthGrant({
+    userId: userA.id,
+    provider: "github",
+    providerUserId: "github-scope-test-user",
+    accessToken: "github-scope-test-token",
+    scopes: ["user:email"]
+  });
+
+  const result = await executeAgentTool({
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
+    toolName: "github_get_user",
+    arguments: {}
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.statusCode, 403);
+  assert.equal(
+    result.error,
+    "Required OAuth scopes are not granted"
+  );
+
+  const audit = await pool.query(
+    `
+      SELECT
+        workspace_id,
+        user_id,
+        tool_name,
+        action,
+        resource_type,
+        authorization_result,
+        status,
+        metadata
+      FROM agent_tool_calls
+      WHERE workspace_id = $1
+        AND user_id = $2
+        AND tool_name = 'github_get_user'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [workspaceA.id, userA.id]
+  );
+
+  assert.equal(audit.rowCount, 1);
+
+  assert.equal(
+    audit.rows[0].authorization_result,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].status,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.oauthProvider,
+    "github"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.reason,
+    "OAUTH_SCOPE_MISSING"
+  );
+
+  assert.deepEqual(
+    audit.rows[0].metadata.missingScopes,
+    ["read:user"]
   );
 });

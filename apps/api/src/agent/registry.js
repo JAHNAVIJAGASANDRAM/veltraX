@@ -93,6 +93,7 @@ export const AGENT_TOOLS = Object.freeze({
     action: "GITHUB_USER_VIEW",
     resourceType: "GITHUB_USER",
     oauthProvider: "github",
+    oauthScopes: ["read:user"],
     execute: getGitHubUser
   }
 });

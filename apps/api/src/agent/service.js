@@ -99,7 +99,8 @@ export async function executeAgentTool({
     try {
       oauthGrant = await requireOAuthGrant({
         userId,
-        provider: tool.oauthProvider
+        provider: tool.oauthProvider,
+        requiredScopes: tool.oauthScopes || []
       });
     } catch (error) {
       if (error.code === "OAUTH_GRANT_NOT_FOUND") {
@@ -121,6 +122,29 @@ export async function executeAgentTool({
           ok: false,
           statusCode: 403,
           error: "Required OAuth authorization is not connected"
+        };
+      }
+
+      if (error.code === "OAUTH_SCOPE_MISSING") {
+        await recordToolCall({
+          workspaceId,
+          userId,
+          tool,
+          authorizationResult: "DENIED",
+          status: "DENIED",
+          metadata: {
+            role,
+            capability: tool.capability,
+            oauthProvider: tool.oauthProvider,
+            reason: "OAUTH_SCOPE_MISSING",
+            missingScopes: error.missingScopes
+          }
+        });
+
+        return {
+          ok: false,
+          statusCode: 403,
+          error: "Required OAuth scopes are not granted"
         };
       }
 

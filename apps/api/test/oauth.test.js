@@ -1,4 +1,4 @@
-﻿import test, { after, before } from "node:test";
+import test, { after, before } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 
@@ -12,6 +12,7 @@ import {
   getOAuthGrant,
   revokeOAuthGrant
 } from "../src/oauth/grants.js";
+import { requireOAuthGrant } from "../src/authorization/oauth.js";
 
 let user;
 
@@ -235,4 +236,78 @@ test("revoked grant can be restored by upsert", async () => {
     "restored-access-token"
   );
   assert.deepEqual(fetched.scopes, ["read"]);
+});
+test("requireOAuthGrant allows a grant with required scopes", async () => {
+  await upsertOAuthGrant({
+    userId: user.id,
+    provider: "scope-test-provider",
+    providerUserId: "scope-user-1",
+    accessToken: "scope-access-token",
+    scopes: ["read:user", "user:email"]
+  });
+
+  const grant = await requireOAuthGrant({
+    userId: user.id,
+    provider: "scope-test-provider",
+    requiredScopes: ["read:user"]
+  });
+
+  assert.ok(grant);
+  assert.equal(grant.accessToken, "scope-access-token");
+  assert.deepEqual(grant.scopes, ["read:user", "user:email"]);
+});
+
+test("requireOAuthGrant rejects a grant with a missing scope", async () => {
+  await upsertOAuthGrant({
+    userId: user.id,
+    provider: "missing-scope-provider",
+    providerUserId: "scope-user-2",
+    accessToken: "scope-access-token-2",
+    scopes: ["user:email"]
+  });
+
+  await assert.rejects(
+    () =>
+      requireOAuthGrant({
+        userId: user.id,
+        provider: "missing-scope-provider",
+        requiredScopes: ["read:user"]
+      }),
+    (error) => {
+      assert.equal(error.code, "OAUTH_SCOPE_MISSING");
+      assert.deepEqual(error.missingScopes, ["read:user"]);
+      return true;
+    }
+  );
+});
+
+test("requireOAuthGrant reports all missing required scopes", async () => {
+  await upsertOAuthGrant({
+    userId: user.id,
+    provider: "multiple-scope-provider",
+    providerUserId: "scope-user-3",
+    accessToken: "scope-access-token-3",
+    scopes: ["read:user"]
+  });
+
+  await assert.rejects(
+    () =>
+      requireOAuthGrant({
+        userId: user.id,
+        provider: "multiple-scope-provider",
+        requiredScopes: [
+          "read:user",
+          "user:email",
+          "repo"
+        ]
+      }),
+    (error) => {
+      assert.equal(error.code, "OAUTH_SCOPE_MISSING");
+      assert.deepEqual(
+        error.missingScopes,
+        ["user:email", "repo"]
+      );
+      return true;
+    }
+  );
 });
