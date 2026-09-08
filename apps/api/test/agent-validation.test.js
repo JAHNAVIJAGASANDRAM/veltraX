@@ -120,3 +120,115 @@ test("delete_project rejects non-string project ID", () => {
     error: "project_id must be a string"
   });
 });
+
+test("github_get_repository accepts valid owner and repo", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: "octocat",
+      repo: "hello-world"
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: true,
+    arguments: {
+      owner: "octocat",
+      repo: "hello-world"
+    }
+  });
+});
+
+test("github_get_repository trims owner and repo", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: " octocat ",
+      repo: " hello-world "
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: true,
+    arguments: {
+      owner: "octocat",
+      repo: "hello-world"
+    }
+  });
+});
+
+test("github_get_repository rejects empty owner", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: "",
+      repo: "hello-world"
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: false,
+    error: "owner is required"
+  });
+});
+
+test("github_get_repository rejects empty repo", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: "octocat",
+      repo: ""
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: false,
+    error: "repo is required"
+  });
+});
+
+test("github_get_repository rejects non-string owner", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: 123,
+      repo: "hello-world"
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: false,
+    error: "owner must be a string"
+  });
+});
+
+test("github_get_repository rejects non-string repo", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: "octocat",
+      repo: 123
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: false,
+    error: "repo must be a string"
+  });
+});
+
+test("github_get_repository rejects unknown arguments", () => {
+  const result = validateToolArguments(
+    "github_get_repository",
+    {
+      owner: "octocat",
+      repo: "hello-world",
+      extra: "blocked"
+    }
+  );
+
+  assert.deepEqual(result, {
+    valid: false,
+    error: "Unknown arguments: extra"
+  });
+});

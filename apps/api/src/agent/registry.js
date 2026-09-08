@@ -13,7 +13,8 @@ import { deleteTask } from "./tools/delete-task.js";
 import { deleteProject } from "./tools/delete-project.js";
 import {
   getGitHubUser,
-  listGitHubRepositories
+  listGitHubRepositories,
+  getGitHubRepository
 } from "./tools/github.js";
 
 export const AGENT_TOOLS = Object.freeze({
@@ -109,6 +110,17 @@ export const AGENT_TOOLS = Object.freeze({
     oauthProvider: "github",
     oauthScopes: [],
     execute: listGitHubRepositories
+  },
+
+  github_get_repository: {
+    name: "github_get_repository",
+    description: "Get metadata for a repository accessible to the authenticated GitHub user.",
+    capability: AGENT_CAPABILITIES.GITHUB_REPOSITORY_VIEW,
+    action: "GITHUB_REPOSITORY_VIEW",
+    resourceType: "GITHUB_REPOSITORY",
+    oauthProvider: "github",
+    oauthScopes: [],
+    execute: getGitHubRepository
   }
 });
 

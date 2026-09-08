@@ -92,3 +92,63 @@ export async function listGitHubRepositories({
     }))
   };
 }
+
+export async function getGitHubRepository({
+  oauthGrant,
+  owner,
+  repo
+}) {
+  if (!oauthGrant) {
+    throw new Error("GitHub OAuth grant is required");
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${oauthGrant.accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "VeltraX"
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      "GitHub repository lookup failed"
+    );
+
+    error.code = "GITHUB_REPOSITORY_LOOKUP_FAILED";
+
+    throw error;
+  }
+
+  const repository = await response.json();
+
+  if (
+    !repository ||
+    typeof repository !== "object" ||
+    Array.isArray(repository)
+  ) {
+    const error = new Error(
+      "GitHub repository response is invalid"
+    );
+
+    error.code = "GITHUB_REPOSITORY_RESPONSE_INVALID";
+
+    throw error;
+  }
+
+  return {
+    repository: {
+      id: repository.id,
+      name: repository.name,
+      fullName: repository.full_name,
+      description: repository.description,
+      private: repository.private,
+      htmlUrl: repository.html_url,
+      defaultBranch: repository.default_branch
+    }
+  };
+}

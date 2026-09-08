@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import pool from "../src/db/pool.js";
 import { executeAgentTool } from "../src/agent/service.js";
-import { upsertOAuthGrant } from "../src/oauth/grants.js";
+import { upsertOAuthGrant, revokeOAuthGrant } from "../src/oauth/grants.js";
 
 let userA;
 let userB;
@@ -611,5 +611,73 @@ test("GitHub agent tool is denied when required OAuth scope is missing", async (
   assert.deepEqual(
     audit.rows[0].metadata.missingScopes,
     ["read:user"]
+  );
+});
+test("GitHub repository lookup is denied without an active OAuth grant", async () => {
+  await revokeOAuthGrant({
+    userId: userA.id,
+    provider: "github"
+  });
+  const result = await executeAgentTool({
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
+    toolName: "github_get_repository",
+    arguments: {
+      owner: "octocat",
+      repo: "hello-world"
+    }
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.statusCode, 403);
+  assert.equal(
+    result.error,
+    "Required OAuth authorization is not connected"
+  );
+
+  const audit = await pool.query(
+    `
+      SELECT
+        workspace_id,
+        user_id,
+        tool_name,
+        action,
+        resource_type,
+        authorization_result,
+        status,
+        metadata
+      FROM agent_tool_calls
+      WHERE workspace_id = $1
+        AND user_id = $2
+        AND tool_name = 'github_get_repository'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [workspaceA.id, userA.id]
+  );
+
+  assert.equal(audit.rowCount, 1);
+
+  assert.equal(
+    audit.rows[0].authorization_result,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].status,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.oauthProvider,
+    "github"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.reason,
+    "OAUTH_GRANT_NOT_FOUND"
   );
 });

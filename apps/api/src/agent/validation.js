@@ -70,6 +70,60 @@ export function validateToolArguments(toolName, toolArguments = {}) {
       arguments: {}
     };
   }
+  if (toolName === "github_get_repository") {
+    const allowedKeys = ["owner", "repo"];
+    const unknownKeys = unknownArguments(
+      toolArguments,
+      allowedKeys
+    );
+
+    if (unknownKeys.length > 0) {
+      return {
+        valid: false,
+        error: `Unknown arguments: ${unknownKeys.join(", ")}`
+      };
+    }
+
+    if (typeof toolArguments.owner !== "string") {
+      return {
+        valid: false,
+        error: "owner must be a string"
+      };
+    }
+
+    const owner = toolArguments.owner.trim();
+
+    if (!owner) {
+      return {
+        valid: false,
+        error: "owner is required"
+      };
+    }
+
+    if (typeof toolArguments.repo !== "string") {
+      return {
+        valid: false,
+        error: "repo must be a string"
+      };
+    }
+
+    const repo = toolArguments.repo.trim();
+
+    if (!repo) {
+      return {
+        valid: false,
+        error: "repo is required"
+      };
+    }
+
+    return {
+      valid: true,
+      arguments: {
+        owner,
+        repo
+      }
+    };
+  }
   if (toolName === "create_project") {
     const allowedKeys = ["name", "description"];
     const unknownKeys = unknownArguments(toolArguments, allowedKeys);
