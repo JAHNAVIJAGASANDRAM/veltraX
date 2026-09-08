@@ -11,7 +11,10 @@ import {
 } from "./tools/tasks.js";
 import { deleteTask } from "./tools/delete-task.js";
 import { deleteProject } from "./tools/delete-project.js";
-import { getGitHubUser } from "./tools/github.js";
+import {
+  getGitHubUser,
+  listGitHubRepositories
+} from "./tools/github.js";
 
 export const AGENT_TOOLS = Object.freeze({
   list_projects: {
@@ -95,6 +98,17 @@ export const AGENT_TOOLS = Object.freeze({
     oauthProvider: "github",
     oauthScopes: ["read:user"],
     execute: getGitHubUser
+  },
+
+  github_list_repositories: {
+    name: "github_list_repositories",
+    description: "List repositories accessible to the authenticated GitHub user.",
+    capability: AGENT_CAPABILITIES.GITHUB_REPOSITORY_VIEW,
+    action: "GITHUB_REPOSITORY_VIEW",
+    resourceType: "GITHUB_REPOSITORY",
+    oauthProvider: "github",
+    oauthScopes: [],
+    execute: listGitHubRepositories
   }
 });
 

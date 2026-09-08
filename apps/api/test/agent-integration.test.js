@@ -1,4 +1,4 @@
-import test, { after, before } from "node:test";
+import test, { after, before, mock } from "node:test";
 import assert from "node:assert/strict";
 
 import pool from "../src/db/pool.js";
@@ -147,8 +147,7 @@ test("OWNER can delete a task inside their workspace", async () => {
       task_id: taskA.id
     }
   });
-
-  assert.equal(result.ok, true);
+    assert.equal(result.ok, true);
   assert.equal(result.result.task.id, taskA.id);
 
   const task = await pool.query(
@@ -262,8 +261,7 @@ test("successful task deletion is written to the audit log", async () => {
       task_id: taskB.id
     }
   });
-
-  assert.equal(result.ok, true);
+    assert.equal(result.ok, true);
 
   const audit = await pool.query(
     `
@@ -362,6 +360,185 @@ test("GitHub agent tool is denied without an active OAuth grant", async () => {
     "OAUTH_GRANT_NOT_FOUND"
   );
 });
+
+test("GitHub repository agent tool is denied without an active OAuth grant", async () => {
+  const result = await executeAgentTool({
+    authorizationContext: {
+      workspaceId: workspaceA.id,
+      userId: userA.id,
+      role: "OWNER"
+    },
+    toolName: "github_list_repositories",
+    arguments: {}
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.statusCode, 403);
+  assert.equal(
+    result.error,
+    "Required OAuth authorization is not connected"
+  );
+
+  const audit = await pool.query(
+    `
+      SELECT
+        workspace_id,
+        user_id,
+        tool_name,
+        action,
+        resource_type,
+        authorization_result,
+        status,
+        metadata
+      FROM agent_tool_calls
+      WHERE workspace_id = $1
+        AND user_id = $2
+        AND tool_name = 'github_list_repositories'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [workspaceA.id, userA.id]
+  );
+
+  assert.equal(audit.rowCount, 1);
+
+  assert.equal(
+    audit.rows[0].authorization_result,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].status,
+    "DENIED"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.oauthProvider,
+    "github"
+  );
+
+  assert.equal(
+    audit.rows[0].metadata.reason,
+    "OAUTH_GRANT_NOT_FOUND"
+  );
+});
+
+test("GitHub repository agent tool executes with the authenticated user's OAuth grant", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = mock.fn(async (url, options) => {
+    assert.equal(
+      url,
+      "https://api.github.com/user/repos?per_page=100&sort=updated&direction=desc"
+    );
+
+    assert.equal(
+      options.headers.Authorization,
+      "Bearer github-user-a-token"
+    );
+
+    return new Response(
+      JSON.stringify([
+        {
+          id: 101,
+          name: "veltrax",
+          full_name: "example/veltrax",
+          description: "VeltraX repository",
+          private: true,
+          html_url: "https://github.com/example/veltrax",
+          default_branch: "main",
+          owner: {
+            login: "example"
+          },
+          permissions: {
+            admin: true
+          }
+        }
+      ]),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  });
+
+  try {
+    await upsertOAuthGrant({
+      userId: userA.id,
+      provider: "github",
+      providerUserId: "github-user-a",
+      accessToken: "github-user-a-token",
+      scopes: []
+    });
+
+    const result = await executeAgentTool({
+      authorizationContext: {
+        workspaceId: workspaceA.id,
+        userId: userA.id,
+        role: "OWNER"
+      },
+      toolName: "github_list_repositories",
+      arguments: {}
+    });
+    assert.equal(result.ok, true);
+
+    assert.deepEqual(result.result, {
+      repositories: [
+        {
+          id: 101,
+          name: "veltrax",
+          fullName: "example/veltrax",
+          description: "VeltraX repository",
+          private: true,
+          htmlUrl: "https://github.com/example/veltrax",
+          defaultBranch: "main"
+        }
+      ]
+    });
+
+    assert.equal(
+      result.result.repositories[0].permissions,
+      undefined
+    );
+
+    const audit = await pool.query(
+      `
+        SELECT
+          workspace_id,
+          user_id,
+          tool_name,
+          action,
+          resource_type,
+          authorization_result,
+          status
+        FROM agent_tool_calls
+        WHERE workspace_id = $1
+          AND user_id = $2
+          AND tool_name = 'github_list_repositories'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `,
+      [workspaceA.id, userA.id]
+    );
+
+    assert.equal(audit.rowCount, 1);
+
+    assert.deepEqual(audit.rows[0], {
+      workspace_id: workspaceA.id,
+      user_id: userA.id,
+      tool_name: "github_list_repositories",
+      action: "GITHUB_REPOSITORY_VIEW",
+      resource_type: "GITHUB_REPOSITORY",
+      authorization_result: "ALLOWED",
+      status: "SUCCESS"
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("GitHub agent tool is denied when required OAuth scope is missing", async () => {
   await upsertOAuthGrant({
     userId: userA.id,

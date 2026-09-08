@@ -55,6 +55,21 @@ export function validateToolArguments(toolName, toolArguments = {}) {
     };
   }
 
+  if (toolName === "github_list_repositories") {
+    const unknownKeys = unknownArguments(toolArguments, []);
+
+    if (unknownKeys.length > 0) {
+      return {
+        valid: false,
+        error: `Unknown arguments: ${unknownKeys.join(", ")}`
+      };
+    }
+
+    return {
+      valid: true,
+      arguments: {}
+    };
+  }
   if (toolName === "create_project") {
     const allowedKeys = ["name", "description"];
     const unknownKeys = unknownArguments(toolArguments, allowedKeys);
@@ -597,4 +612,3 @@ export function validateToolArguments(toolName, toolArguments = {}) {
     error: "No argument validator registered for this tool"
   };
 }
-
