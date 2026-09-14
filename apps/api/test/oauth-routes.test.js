@@ -88,6 +88,53 @@ test("GitHub OAuth start requires authentication", async () => {
   );
 });
 
+
+test("GitHub OAuth callback rejects a state from another session", async () => {
+  const agentA = request.agent(app);
+
+  await agentA
+    .post("/api/auth/login")
+    .send({
+      email: "oauth-route-test@example.com",
+      password: "test-password"
+    })
+    .expect(200);
+
+  const startResponse = await agentA
+    .get("/api/oauth/github")
+    .redirects(0);
+
+  assert.equal(startResponse.status, 302);
+
+  const state = new URL(
+    startResponse.headers.location
+  ).searchParams.get("state");
+
+  assert.ok(state);
+
+  const agentB = request.agent(app);
+
+  await agentB
+    .post("/api/auth/login")
+    .send({
+      email: "oauth-route-test@example.com",
+      password: "test-password"
+    })
+    .expect(200);
+
+  const callbackResponse = await agentB
+    .get("/api/oauth/github/callback")
+    .query({
+      code: "test-authorization-code",
+      state
+    });
+
+  assert.equal(callbackResponse.status, 400);
+  assert.equal(
+    callbackResponse.body.error,
+    "Invalid or expired OAuth state"
+  );
+});
 test("authenticated user receives GitHub OAuth redirect", async () => {
   const agent = request.agent(app);
 

@@ -48,6 +48,7 @@ router.get(
 
       const state = await createOAuthState({
         userId: req.user.id,
+        sessionId: req.session.id,
         provider: "github"
       });
 
@@ -74,6 +75,7 @@ router.get(
  */
 router.get(
   "/github/callback",
+  requireAuth,
   async (req, res, next) => {
     try {
       requireGitHubConfig();
@@ -100,6 +102,7 @@ router.get(
 
       const oauthState = await consumeOAuthState({
         state,
+        sessionId: req.session.id,
         provider: "github"
       });
 

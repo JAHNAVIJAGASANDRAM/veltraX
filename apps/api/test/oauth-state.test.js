@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 
 import pool from "../src/db/pool.js";
+import { createSession } from "../src/auth/session.js";
 import {
   createOAuthState,
   consumeOAuthState
 } from "../src/oauth/state.js";
 
 let user;
+let sessionId;
 
 before(async () => {
   await pool.query(
@@ -25,15 +27,20 @@ before(async () => {
         email,
         password_hash
       )
-      VALUES (
-        'oauth-state-test@example.com',
-        'test-password-hash'
-      )
+      VALUES ($1, $2)
       RETURNING id, email
-    `
+    `,
+    ["oauth-state-test@example.com", "test-password-hash"]
   );
 
   user = result.rows[0];
+
+  const session = await createSession(user.id);
+
+  sessionId = crypto
+    .createHash("sha256")
+    .update(session.token)
+    .digest("hex");
 });
 
 after(async () => {
@@ -53,6 +60,7 @@ after(async () => {
 test("createOAuthState creates a random state", async () => {
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
@@ -63,6 +71,7 @@ test("createOAuthState creates a random state", async () => {
 test("created OAuth state is stored hashed", async () => {
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
@@ -87,11 +96,13 @@ test("created OAuth state is stored hashed", async () => {
 test("consumeOAuthState returns the correct authenticated user", async () => {
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
   const consumed = await consumeOAuthState({
     state,
+    sessionId,
     provider: "github"
   });
 
@@ -104,16 +115,19 @@ test("consumeOAuthState returns the correct authenticated user", async () => {
 test("OAuth state can only be consumed once", async () => {
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
   const first = await consumeOAuthState({
     state,
+    sessionId,
     provider: "github"
   });
 
   const second = await consumeOAuthState({
     state,
+    sessionId,
     provider: "github"
   });
 
@@ -121,14 +135,47 @@ test("OAuth state can only be consumed once", async () => {
   assert.equal(second, null);
 });
 
-test("OAuth state cannot be consumed for another provider", async () => {
+test("OAuth state cannot be consumed from another session", async () => {
+  const otherSession = await createSession(user.id);
+
+  const otherSessionId = crypto
+    .createHash("sha256")
+    .update(otherSession.token)
+    .digest("hex");
+
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
   const consumed = await consumeOAuthState({
     state,
+    sessionId: otherSessionId,
+    provider: "github"
+  });
+
+  assert.equal(consumed, null);
+
+  await pool.query(
+    `
+      DELETE FROM sessions
+      WHERE id = $1
+    `,
+    [otherSessionId]
+  );
+});
+
+test("OAuth state cannot be consumed for another provider", async () => {
+  const state = await createOAuthState({
+    userId: user.id,
+    sessionId,
+    provider: "github"
+  });
+
+  const consumed = await consumeOAuthState({
+    state,
+    sessionId,
     provider: "google"
   });
 
@@ -138,6 +185,7 @@ test("OAuth state cannot be consumed for another provider", async () => {
 test("invalid OAuth state is rejected", async () => {
   const consumed = await consumeOAuthState({
     state: "invalid-state",
+    sessionId,
     provider: "github"
   });
 
@@ -147,6 +195,7 @@ test("invalid OAuth state is rejected", async () => {
 test("expired OAuth state is rejected", async () => {
   const state = await createOAuthState({
     userId: user.id,
+    sessionId,
     provider: "github"
   });
 
@@ -166,6 +215,7 @@ test("expired OAuth state is rejected", async () => {
 
   const consumed = await consumeOAuthState({
     state,
+    sessionId,
     provider: "github"
   });
 
