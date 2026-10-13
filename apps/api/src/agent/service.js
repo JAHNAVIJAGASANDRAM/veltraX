@@ -12,7 +12,8 @@ async function recordToolCall({
   authorizationResult,
   status,
   resourceId = null,
-  metadata = {}
+  metadata = {},
+  requestId = null
 }) {
   await pool.query(
     `
@@ -46,8 +47,10 @@ async function recordToolCall({
 export async function executeAgentTool({
   authorizationContext,
   toolName,
-  arguments: toolArguments = {}
+  arguments: toolArguments = {},
+  requestId = null
 }) {
+  const audit = (event) => recordToolCall({ ...event, requestId });
   const {
     workspaceId,
     userId,
@@ -73,7 +76,7 @@ export async function executeAgentTool({
   });
 
   if (!policyDecision.allowed) {
-    await recordToolCall({
+    await audit({
       workspaceId,
       userId,
       tool,
@@ -104,7 +107,7 @@ export async function executeAgentTool({
       });
     } catch (error) {
       if (error.code === "OAUTH_GRANT_NOT_FOUND") {
-        await recordToolCall({
+        await audit({
           workspaceId,
           userId,
           tool,
@@ -126,7 +129,7 @@ export async function executeAgentTool({
       }
 
       if (error.code === "OAUTH_SCOPE_MISSING") {
-        await recordToolCall({
+        await audit({
           workspaceId,
           userId,
           tool,
@@ -158,7 +161,7 @@ export async function executeAgentTool({
   );
 
   if (!validation.valid) {
-    await recordToolCall({
+    await audit({
       workspaceId,
       userId,
       tool,
@@ -186,7 +189,7 @@ export async function executeAgentTool({
       ...validation.arguments
     });
 
-    await recordToolCall({
+    await audit({
       workspaceId,
       userId,
       tool,
@@ -213,7 +216,7 @@ export async function executeAgentTool({
       error.code === "RESOURCE_NOT_FOUND" ||
       error.code === "ASSIGNEE_OUTSIDE_WORKSPACE"
     ) {
-      await recordToolCall({
+      await audit({
         workspaceId,
         userId,
         tool,
@@ -247,7 +250,7 @@ export async function executeAgentTool({
       };
     }
 
-    await recordToolCall({
+    await audit({
       workspaceId,
       userId,
       tool,
