@@ -98,5 +98,17 @@ export async function requestChatCompletion({
     throw providerError("LLM_MALFORMED_RESPONSE", "The language model provider returned an empty completion", 502);
   }
 
+  if (message.tool_calls?.some((call) =>
+    !call ||
+    typeof call.id !== "string" ||
+    !call.id.trim() ||
+    call.type !== "function" ||
+    typeof call.function?.name !== "string" ||
+    !call.function.name.trim() ||
+    typeof call.function.arguments !== "string"
+  )) {
+    throw providerError("LLM_MALFORMED_RESPONSE", "The language model provider returned an invalid tool call", 502);
+  }
+
   return message;
 }
