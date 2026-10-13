@@ -426,13 +426,21 @@ export function validateToolArguments(toolName, toolArguments = {}) {
 
     if (
       toolArguments.assigned_to !== undefined &&
-      toolArguments.assigned_to !== null &&
-      typeof toolArguments.assigned_to !== "string"
+      toolArguments.assigned_to !== null
     ) {
-      return {
-        valid: false,
-        error: "assigned_to must be a string or null"
-      };
+      if (typeof toolArguments.assigned_to !== "string") {
+        return {
+          valid: false,
+          error: "assigned_to must be a string or null"
+        };
+      }
+      const trimmedAssignedTo = toolArguments.assigned_to.trim();
+      if (!trimmedAssignedTo || !isValidUuid(trimmedAssignedTo)) {
+        return {
+          valid: false,
+          error: "assigned_to must be a valid UUID"
+        };
+      }
     }
 
     return {
@@ -552,13 +560,21 @@ export function validateToolArguments(toolName, toolArguments = {}) {
 
     if (
       toolArguments.assigned_to !== undefined &&
-      toolArguments.assigned_to !== null &&
-      typeof toolArguments.assigned_to !== "string"
+      toolArguments.assigned_to !== null
     ) {
-      return {
-        valid: false,
-        error: "assigned_to must be a string or null"
-      };
+      if (typeof toolArguments.assigned_to !== "string") {
+        return {
+          valid: false,
+          error: "assigned_to must be a string or null"
+        };
+      }
+      const trimmedAssignedTo = toolArguments.assigned_to.trim();
+      if (!trimmedAssignedTo || !isValidUuid(trimmedAssignedTo)) {
+        return {
+          valid: false,
+          error: "assigned_to must be a valid UUID"
+        };
+      }
     }
 
     return {

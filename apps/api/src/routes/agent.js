@@ -78,7 +78,21 @@ router.post(
     const requestId = getRequestId(req);
     res.set("x-request-id", requestId);
 
-    const { message } = req.body || {};
+    if (req.headers["content-type"] && !req.is("application/json")) {
+      return res.status(415).json({
+        error: "Content-Type must be application/json",
+        requestId
+      });
+    }
+
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({
+        error: "Request body must be a JSON object",
+        requestId
+      });
+    }
+
+    const { message } = req.body;
     if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({
         error: "message is required",
@@ -114,11 +128,13 @@ router.post(
       return res.status(statusCode).json({
         error: error.code === "LLM_NOT_CONFIGURED"
           ? "AI agent is not configured"
-          : error.code === "LLM_RATE_LIMITED"
-            ? "AI provider rate limit reached; retry later"
-            : error.code === "LLM_TIMEOUT"
-              ? "AI provider timed out"
-              : "AI agent is temporarily unavailable",
+          : error.code === "LLM_CONFIGURATION_ERROR"
+            ? "AI agent configuration error"
+            : error.code === "LLM_RATE_LIMITED"
+              ? "AI provider rate limit reached; retry later"
+              : error.code === "LLM_TIMEOUT"
+                ? "AI provider timed out"
+                : "AI agent is temporarily unavailable",
         requestId
       });
     }

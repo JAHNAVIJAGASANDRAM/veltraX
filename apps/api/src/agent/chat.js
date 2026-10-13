@@ -177,13 +177,28 @@ export async function runAgentChat({
       };
     }
 
+    const seenCallIds = new Set();
+    const sanitizedCalls = calls.map((c, idx) => {
+      let rawId = typeof c?.id === "string" && c.id.trim()
+        ? c.id.trim().slice(0, 128)
+        : `call_${totalCalls + idx + 1}`;
+      if (seenCallIds.has(rawId)) {
+        rawId = `${rawId}_${totalCalls + idx + 1}`;
+      }
+      seenCallIds.add(rawId);
+      return {
+        ...c,
+        id: rawId
+      };
+    });
+
     messages.push({
       role: "assistant",
       content: assistantMessage.content || null,
-      tool_calls: calls
+      tool_calls: sanitizedCalls
     });
 
-    for (const call of calls) {
+    for (const call of sanitizedCalls) {
       totalCalls += 1;
       if (totalCalls > MAX_TOOL_CALLS) {
         return {
@@ -203,15 +218,22 @@ export async function runAgentChat({
           error: "Invalid or unsupported tool request"
         };
       } else {
-        const execution = await executeTool({
-          authorizationContext,
-          toolName,
-          arguments: parsedArguments,
-          requestId
-        });
-        result = execution.ok
-          ? { ok: true, result: execution.result }
-          : { ok: false, error: execution.error };
+        try {
+          const execution = await executeTool({
+            authorizationContext,
+            toolName,
+            arguments: parsedArguments,
+            requestId
+          });
+          result = execution.ok
+            ? { ok: true, result: execution.result }
+            : { ok: false, error: execution.error };
+        } catch (toolError) {
+          result = {
+            ok: false,
+            error: toolError?.message || "Tool execution failed"
+          };
+        }
       }
 
       toolResults.push({
@@ -222,7 +244,7 @@ export async function runAgentChat({
 
       messages.push({
         role: "tool",
-        tool_call_id: typeof call?.id === "string" ? call.id : `invalid-call-${totalCalls}`,
+        tool_call_id: call.id,
         content: JSON.stringify(result)
       });
     }

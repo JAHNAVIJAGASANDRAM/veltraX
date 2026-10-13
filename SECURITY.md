@@ -64,13 +64,23 @@ A prompt cannot grant the agent additional privileges by instructing it to assum
 
 ## Auditability
 
-Agent tool execution records the server-derived actor and workspace context. Audit records include authorization outcome and execution status.
+Agent tool execution records the server-derived actor and workspace context. Audit records include authorization outcome, execution status, and request correlation ID (`requestId`) stored in structured metadata.
+
+## Conversational Agent Hardening
+
+The conversational LLM workflow enforces strict application security boundaries:
+
+- **Isolated Server Authorization**: The LLM functions strictly as a conversational planner. Model output cannot supply or override actor identity, workspace IDs, roles, or capabilities.
+- **Controlled Tool Exposure**: Only non-destructive tools (`list_projects`, `create_project`, `update_project`, `list_tasks`, `create_task`, `update_task`, `github_get_user`, `github_list_repositories`, `github_get_repository`) are exposed. Deletion tools are excluded from conversational schemas.
+- **Strict Server Validation & Schema Drift Detection**: Model arguments are validated server-side for structure, UUID validity, string length limits, and enum constraints. Automated tests guarantee zero schema drift between conversational tool schemas and backend validators.
+- **Bounded Invocations**: Input messages are bounded to 4,000 characters. Conversational turns are capped at 4 rounds and 6 total tool executions per turn. Provider failures do not automatically retry mutating tools.
+- **Provider Security & Error Sanitization**: API keys are restricted to server environment variables. Upstream provider errors, auth rejections, and rate limits are mapped to generic, typed responses without exposing credentials or internal response bodies.
 
 ## Security Test Coverage
 
-The API test suite currently contains 67 tests: 67 passing, 0 failing, 0 cancelled, 0 skipped, and 0 TODO.
+The API test suite currently contains 116 tests: 116 passing, 0 failing, 0 cancelled, 0 skipped, and 0 TODO.
 
-Security-focused tests cover client identity spoofing, role/capability spoofing, unauthenticated access, cross-workspace access, RBAC enforcement, OAuth grant isolation, OAuth scope enforcement, OAuth state session binding, single-use and expiration, token encryption and tamper detection, revoked grants, GitHub delegated-token usage, response sanitization, and audit attribution.
+Security-focused tests cover client identity spoofing, role/capability spoofing, unauthenticated access, cross-workspace access, RBAC enforcement, OAuth grant isolation, OAuth scope enforcement, OAuth state session binding, single-use and expiration, token encryption and tamper detection, revoked grants, GitHub delegated-token usage, response sanitization, provider failure mapping, tool execution failure handling, prompt-injection defense, schema drift detection, execution bounds, and request-correlated audit attribution.
 
 ## Security Principle
 

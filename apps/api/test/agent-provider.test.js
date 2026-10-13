@@ -138,3 +138,198 @@ test("provider maps a timeout to a safe timeout error", async () => {
     (error) => error.code === "LLM_TIMEOUT" && error.statusCode === 504
   );
 });
+
+test("valid completion without tool calls returns message content", async () => {
+  const result = await requestChatCompletion({
+    messages: [{ role: "user", content: "Hello" }],
+    tools: [],
+    env: configuredEnv,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: "Hello! How can I help you?",
+            tool_calls: []
+          },
+          finish_reason: "stop"
+        }]
+      })
+    })
+  });
+
+  assert.equal(result.content, "Hello! How can I help you?");
+});
+
+test("invalid JSON response throws LLM_MALFORMED_RESPONSE", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => { throw new SyntaxError("Unexpected token < in JSON at position 0"); }
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE" && error.statusCode === 502
+  );
+});
+
+test("HTTP 401/403 credentials rejected returns LLM_CONFIGURATION_ERROR", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({ ok: false, status: 401 })
+    }),
+    (error) => error.code === "LLM_CONFIGURATION_ERROR" && error.statusCode === 503
+  );
+
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({ ok: false, status: 403 })
+    }),
+    (error) => error.code === "LLM_CONFIGURATION_ERROR" && error.statusCode === 503
+  );
+});
+
+test("HTTP 5xx server error returns LLM_UNAVAILABLE", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({ ok: false, status: 500 })
+    }),
+    (error) => error.code === "LLM_UNAVAILABLE" && error.statusCode === 502
+  );
+
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({ ok: false, status: 503 })
+    }),
+    (error) => error.code === "LLM_UNAVAILABLE" && error.statusCode === 502
+  );
+});
+
+test("empty completion is rejected", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: "",
+              tool_calls: []
+            }
+          }]
+        })
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE" && error.statusCode === 502
+  );
+});
+
+test("oversized completion content is rejected", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: "A".repeat(50001)
+            }
+          }]
+        })
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE" && error.statusCode === 502
+  );
+});
+
+test("oversized tool-call arguments are rejected", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [{
+                id: "call_oversized",
+                type: "function",
+                function: {
+                  name: "create_task",
+                  arguments: JSON.stringify({ description: "B".repeat(20005) })
+                }
+              }]
+            }
+          }]
+        })
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE" && error.statusCode === 502
+  );
+});
+
+test("finish_reason length is rejected as truncated response", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: "truncated response...",
+              tool_calls: []
+            },
+            finish_reason: "length"
+          }]
+        })
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE" && error.message.includes("truncated")
+  );
+});
+
+test("invalid API URL protocol in configuration fails closed", () => {
+  assert.throws(
+    () => getLLMConfig({ ...configuredEnv, LLM_API_URL: "ftp://example.test/v1" }),
+    (error) => error.code === "LLM_CONFIGURATION_ERROR" && error.statusCode === 503
+  );
+
+  assert.throws(
+    () => getLLMConfig({ ...configuredEnv, LLM_API_URL: "not-a-url" }),
+    (error) => error.code === "LLM_CONFIGURATION_ERROR" && error.statusCode === 503
+  );
+});
+

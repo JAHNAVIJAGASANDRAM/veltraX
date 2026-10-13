@@ -232,3 +232,72 @@ test("github_get_repository rejects unknown arguments", () => {
     error: "Unknown arguments: extra"
   });
 });
+
+test("create_task accepts valid arguments including assigned_to UUID", () => {
+  const result = validateToolArguments("create_task", {
+    project_id: VALID_UUID,
+    title: "Implement Auth",
+    assigned_to: VALID_UUID
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.arguments.assignedTo, VALID_UUID);
+});
+
+test("create_task rejects invalid assigned_to UUID", () => {
+  const result = validateToolArguments("create_task", {
+    project_id: VALID_UUID,
+    title: "Implement Auth",
+    assigned_to: "invalid-uuid"
+  });
+
+  assert.equal(result.valid, false);
+  assert.equal(result.error, "assigned_to must be a valid UUID");
+});
+
+test("create_task rejects invalid status enum", () => {
+  const result = validateToolArguments("create_task", {
+    project_id: VALID_UUID,
+    title: "Implement Auth",
+    status: "INVALID_STATUS"
+  });
+
+  assert.equal(result.valid, false);
+  assert.match(result.error, /status must be one of/);
+});
+
+test("update_task accepts valid arguments including assigned_to UUID", () => {
+  const result = validateToolArguments("update_task", {
+    task_id: VALID_UUID,
+    title: "Update Task",
+    status: "DONE",
+    assigned_to: VALID_UUID
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.arguments.assignedTo, VALID_UUID);
+});
+
+test("update_task rejects invalid assigned_to UUID", () => {
+  const result = validateToolArguments("update_task", {
+    task_id: VALID_UUID,
+    title: "Update Task",
+    status: "DONE",
+    assigned_to: "invalid-uuid"
+  });
+
+  assert.equal(result.valid, false);
+  assert.equal(result.error, "assigned_to must be a valid UUID");
+});
+
+test("update_task rejects invalid status enum", () => {
+  const result = validateToolArguments("update_task", {
+    task_id: VALID_UUID,
+    title: "Update Task",
+    status: "NOT_A_STATUS"
+  });
+
+  assert.equal(result.valid, false);
+  assert.match(result.error, /status must be one of/);
+});
+

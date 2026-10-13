@@ -59,6 +59,23 @@ export async function executeAgentTool({
   const tool = getAgentTool(toolName);
 
   if (!tool) {
+    await audit({
+      workspaceId,
+      userId,
+      tool: {
+        name: typeof toolName === "string" ? toolName.slice(0, 128) : "unknown",
+        action: "UNKNOWN",
+        resourceType: "UNKNOWN"
+      },
+      authorizationResult: "DENIED",
+      status: "UNKNOWN_TOOL",
+      metadata: {
+        role,
+        requestedTool: typeof toolName === "string" ? toolName.slice(0, 128) : "unknown",
+        reason: "UNKNOWN_TOOL"
+      }
+    });
+
     return {
       ok: false,
       statusCode: 400,
