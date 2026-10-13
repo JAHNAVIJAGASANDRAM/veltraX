@@ -95,3 +95,46 @@ test("network failure is mapped to a safe provider error", async () => {
     (error) => error.code === "LLM_UNAVAILABLE" && !error.message.includes("private network detail")
   );
 });
+
+
+test("provider rejects malformed tool-call structures", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [{
+                type: "function",
+                function: { name: "list_projects", arguments: "{}" }
+              }]
+            }
+          }]
+        })
+      })
+    }),
+    (error) => error.code === "LLM_MALFORMED_RESPONSE"
+  );
+});
+
+test("provider maps a timeout to a safe timeout error", async () => {
+  await assert.rejects(
+    requestChatCompletion({
+      messages: [],
+      tools: [],
+      env: configuredEnv,
+      fetchImpl: async () => {
+        const error = new Error("timed out");
+        error.name = "TimeoutError";
+        throw error;
+      }
+    }),
+    (error) => error.code === "LLM_TIMEOUT" && error.statusCode === 504
+  );
+});
