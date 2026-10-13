@@ -328,3 +328,13 @@ test("agent route blocks cross-workspace resource access", async () => {
 
   assert.equal(task.rowCount, 1);
 });
+
+
+test("agent chat route requires an authenticated session", async () => {
+  const response = await request(app)
+    .post(`/api/workspaces/${workspaceA.id}/agent/chat`)
+    .send({ message: "List my projects" });
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.error, "Authentication required");
+});
