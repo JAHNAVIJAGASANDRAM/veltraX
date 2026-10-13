@@ -39,7 +39,7 @@ async function recordToolCall({
       resourceId,
       authorizationResult,
       status,
-      JSON.stringify(metadata)
+      JSON.stringify({ ...metadata, requestId })
     ]
   );
 }
