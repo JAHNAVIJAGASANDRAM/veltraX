@@ -66,3 +66,47 @@ VeltraX addresses these risks by enforcing identity, workspace boundaries, permi
                  v           v
                Stop     Execute Action
 
+
+
+## LLM-powered agent chat
+
+VeltraX supports an OpenAI-compatible chat-completions provider through a small adapter. Existing direct tool execution remains available; conversational requests use the same registry, validator, capability policy, OAuth grant resolution, and audit service.
+
+Configure these optional variables in the root `.env` (never commit real credentials):
+
+```dotenv
+LLM_API_KEY=your-provider-api-key
+LLM_MODEL=gpt-4o-mini
+LLM_API_URL=https://api.openai.com/v1/chat/completions
+LLM_TIMEOUT_MS=20000
+```
+
+A provider compatible with the OpenAI chat-completions tool-call format can be selected by changing `LLM_API_URL` and `LLM_MODEL`. The default endpoint is OpenAI; provider usage may incur charges. Do not assume API access is free. The chat feature makes external requests only when `/agent/chat` is called. No provider key is required for the existing direct tool route or unit tests.
+
+Start the app as usual with `pnpm install`, configure the existing PostgreSQL and session/OAuth variables, run `pnpm db:migrate`, then `pnpm dev`.
+
+### Conversational endpoint
+
+`POST /api/workspaces/:workspaceId/agent/chat`
+
+Requires the existing authenticated session cookie and workspace membership. Example request:
+
+```http
+POST /api/workspaces/<workspace-uuid>/agent/chat
+Content-Type: application/json
+Cookie: veltrax_session=<session-cookie>
+X-Request-Id: demo-chat-001
+
+{"message":"List the projects in my workspace"}
+```
+
+A successful response contains `message`, `toolCalls`, and `requestId`. Tool calls are bounded per request. Tool schemas omit user IDs, workspace IDs, roles, and permissions. Destructive task/project deletion tools are intentionally not exposed through chat; the existing direct tool endpoint retains its server-side policy checks.
+
+### Security and operational notes
+
+- Every model-requested tool passes through the existing backend tool execution service and server-derived RBAC. Model output cannot grant permissions or change identity.
+- Arguments are parsed as JSON and validated again by the backend. Unknown tools and malformed arguments are rejected without executing them.
+- Provider keys are read from environment variables, not prompts or tool results. Provider errors returned to clients are deliberately generic.
+- Request IDs are returned in the response and attached to audit metadata for executed tools.
+- This is not RAG: the repository currently has no verified document-ingestion and vector-retrieval pipeline. Workspace project/task tools are used instead.
+- Chat completion depends on a reachable configured provider and may incur API charges. Provider-specific endpoint compatibility can vary. Tool results are bounded by request-level tool-call limits, but the application still needs operational rate limiting before public deployment.
